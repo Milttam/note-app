@@ -2,7 +2,9 @@ import React from "react"
 import Sidebar from "./components/Sidebar"
 import Editor from "./components/Editor"
 import Split from "react-split"
-import { nanoid } from "nanoid"
+//import { nanoid } from "nanoid"
+import { notesCollection, db} from "./firebase"
+import { onSnapshot, addDoc, doc, deleteDoc } from "firebase/firestore"
 
 export default function App() {
     //create notes state which will store array of notes
@@ -22,17 +24,35 @@ export default function App() {
         notes.find(note => note.id === currentNoteId) 
         || notes[0]
 
+    //only setting up the onsnapshot event listener once 
     React.useEffect(() => {
-        localStorage.setItem("notes", JSON.stringify(notes))
-    }, [notes])
+        // since we don't want to leave memory leaks (leave unclosed event listeners, we need to close it)
+        const unsub = onSnapshot(notesCollection, (snapshot)=>{
+            //Note: this inner function will run whenever something changes
+            // i.e. whenever there is a discrepancy between local state and database
+            
+            // sync local notes with snapshot data 
+            console.log("things are changing")
 
-    function createNewNote() {
+            //reformat data from firestore 
+            const notesArr = snapshot.docs.map(doc => ({ //docs are the snapshot documents we need to reformat
+                ...doc.data(),
+                id: doc.id
+            }))
+            setNotes(notesArr)
+        })
+        //return a "clean-up" function to handle sideEffects
+        return unsub 
+    }, [])
+
+    //need to make async function since we are waiting for response
+    async function createNewNote() {
         const newNote = {
-            id: nanoid(),
             body: "# Type your markdown note's title here"
         }
-        setNotes(prevNotes => [newNote, ...prevNotes])
-        setCurrentNoteId(newNote.id)
+        //response to addDoc will be a reference to the new note (a document in firestore)
+        const newNoteRef = await addDoc(notesCollection, newNote)
+        setCurrentNoteId(newNoteRef.id)
     }
 
     function updateNote(text) {
@@ -51,9 +71,14 @@ export default function App() {
         })
     }
 
-    function deleteNote(event, noteId) {
-        event.stopPropagation()
-        setNotes(oldNotes => oldNotes.filter(note => note.id !== noteId))
+    async function deleteNote(noteId) {
+        // Refactored: dont need this line anymore since we are deleting from firestore now
+        //setNotes(oldNotes => oldNotes.filter(note => note.id !== noteId))
+
+        //get the document reference we want to delete using func
+        const docRef = doc(db, "notes",noteId)
+        //call delete operation and wait for response
+        await deleteDoc(docRef)
     }
 
     return (
