@@ -4,7 +4,7 @@ import Editor from "./components/Editor"
 import Split from "react-split"
 //import { nanoid } from "nanoid"
 import { notesCollection, db} from "./firebase"
-import { onSnapshot, addDoc, doc, deleteDoc } from "firebase/firestore"
+import { onSnapshot, addDoc, doc, deleteDoc, setDoc } from "firebase/firestore"
 
 export default function App() {
     //create notes state which will store array of notes
@@ -21,6 +21,9 @@ export default function App() {
     const currentNote = 
         notes.find(note => note.id === currentNoteId) 
         || notes[0]
+
+    //create sorted Notes array 
+    const sortedArray = notes.sort((a,b)=>b.updatedAt-a.updatedAt)
 
     //only setting up the onsnapshot event listener once 
     React.useEffect(() => {
@@ -51,28 +54,37 @@ export default function App() {
 
     //need to make async function since we are waiting for response
     async function createNewNote() {
+        //crewate new Note with fields body, created, and updatedAt attributes
         const newNote = {
-            body: "# Type your markdown note's title here"
+            body: "# Type your markdown note's title here",
+            createdAt: Date.now(),
+            updatedAt: Date.now()
         }
         //response to addDoc will be a reference to the new note (a document in firestore)
         const newNoteRef = await addDoc(notesCollection, newNote)
         setCurrentNoteId(newNoteRef.id)
     }
 
-    function updateNote(text) {
-        setNotes(oldNotes => {
-            const newArray = []
-            for (let i = 0; i < oldNotes.length; i++) {
-                const oldNote = oldNotes[i]
-                if (oldNote.id === currentNoteId) {
-                    // Put the most recently-modified note at the top
-                    newArray.unshift({ ...oldNote, body: text })
-                } else {
-                    newArray.push(oldNote)
-                }
-            }
-            return newArray
-        })
+    async function updateNote(text) {
+        //Old code for local state update Note
+        // setNotes(oldNotes => {
+        //     const newArray = []
+        //     for (let i = 0; i < oldNotes.length; i++) {
+        //         const oldNote = oldNotes[i]
+        //         if (oldNote.id === currentNoteId) {
+        //             // Put the most recently-modified note at the top
+        //             newArray.unshift({ ...oldNote, body: text })
+        //         } else {
+        //             newArray.push(oldNote)
+        //         }
+        //     }
+        //     return newArray
+        // })
+
+        //connect updateNote to database
+        const docRef = doc(db, "notes",currentNoteId)
+        await setDoc(docRef,{body: text, updatedAt:Date.now()}, {merge: true}) 
+        //merge allows us to merge object in 2nd param to the already existing object in db
     }
 
     async function deleteNote(noteId) {
@@ -97,7 +109,7 @@ export default function App() {
                         className="split"
                     >
                         <Sidebar
-                            notes={notes}
+                            notes={sortedArray}
                             currentNote={currentNote}
                             setCurrentNoteId={setCurrentNoteId}
                             newNote={createNewNote}
