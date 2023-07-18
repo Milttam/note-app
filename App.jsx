@@ -14,10 +14,8 @@ export default function App() {
         () => JSON.parse(localStorage.getItem("notes")) || []
     )
 
-    //create current Not id state which defaults to first note in notes
-    const [currentNoteId, setCurrentNoteId] = React.useState(
-        (notes[0]?.id) || ""
-    )
+    //create current Not id state which defaults to empty string
+    const [currentNoteId, setCurrentNoteId] = React.useState("")
     
     //easily 
     const currentNote = 
@@ -30,7 +28,7 @@ export default function App() {
         const unsub = onSnapshot(notesCollection, (snapshot)=>{
             //Note: this inner function will run whenever something changes
             // i.e. whenever there is a discrepancy between local state and database
-            
+
             // sync local notes with snapshot data 
             console.log("things are changing")
 
@@ -44,6 +42,12 @@ export default function App() {
         //return a "clean-up" function to handle sideEffects
         return unsub 
     }, [])
+
+    React.useEffect(() => {
+        if (!currentNoteId) {
+            setCurrentNoteId(notes[0].id)
+        }
+    }, [notes])
 
     //need to make async function since we are waiting for response
     async function createNewNote() {
@@ -99,14 +103,11 @@ export default function App() {
                             newNote={createNewNote}
                             deleteNote={deleteNote}
                         />
-                        {
-                            currentNoteId &&
-                            notes.length > 0 &&
-                            <Editor
-                                currentNote={currentNote}
-                                updateNote={updateNote}
-                            />
-                        }
+                        <Editor
+                            currentNote={currentNote}
+                            updateNote={updateNote}
+                        />
+        
                     </Split>
                     :
                     <div className="no-notes">
