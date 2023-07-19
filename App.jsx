@@ -36,7 +36,7 @@ export default function App() {
             // i.e. whenever there is a discrepancy between local state and database
 
             // sync local notes with snapshot data 
-            console.log("things are changing")
+            //console.log("things are changing")
 
             //reformat data from firestore 
             const notesArr = snapshot.docs.map(doc => ({ //docs are the snapshot documents we need to reformat
