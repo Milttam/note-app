@@ -16,6 +16,8 @@ export default function App() {
 
     //create current Not id state which defaults to empty string
     const [currentNoteId, setCurrentNoteId] = React.useState("")
+
+    const [tempNoteText, setTempNoteText] = React.useState("")
     
     //easily 
     const currentNote = 
@@ -24,6 +26,7 @@ export default function App() {
 
     //create sorted Notes array 
     const sortedArray = notes.sort((a,b)=>b.updatedAt-a.updatedAt)
+
 
     //only setting up the onsnapshot event listener once 
     React.useEffect(() => {
@@ -46,11 +49,34 @@ export default function App() {
         return unsub 
     }, [])
 
+    //set current note id whenever notes changes
     React.useEffect(() => {
         if (!currentNoteId) {
             setCurrentNoteId(notes[0].id)
         }
     }, [notes])
+
+    //set tempNoteText to currentNote.body 
+    React.useEffect(()=> {
+        if (currentNote) {
+            setTempNoteText(currentNote.body)
+        }  
+    },[currentNote])
+
+    //Debouncing: update note only every 500ms
+    React.useEffect(() => {
+        //create timer which only runs the inside function every 500ms and store
+        //the id of the timer to remove it after
+        const timeoutId = setTimeout(() => {
+            //add condition to only update if text is diff. So that a click does not change the order
+            if (tempNoteText != currentNote.body){
+                updateNote(tempNoteText)
+            }
+        }, 500)
+
+        //Once updated, return a function that will clear the timer 
+        return () => clearTimeout(timeoutId)
+    }, [tempNoteText]) //run again when tempNoteText is modified
 
     //need to make async function since we are waiting for response
     async function createNewNote() {
@@ -116,8 +142,8 @@ export default function App() {
                             deleteNote={deleteNote}
                         />
                         <Editor
-                            currentNote={currentNote}
-                            updateNote={updateNote}
+                            tempNoteText={tempNoteText}
+                            setTempNoteText={setTempNoteText}
                         />
         
                     </Split>
