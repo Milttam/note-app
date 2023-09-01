@@ -12,9 +12,13 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "*",
+    "gh-pages": "^6.0.0",
     "vite": "latest"
   },
+  "homepage": "https://Milttam.github.io/note-app",
   "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
     "start": "vite",
     "dev": "vite",
     "build": "vite build",
